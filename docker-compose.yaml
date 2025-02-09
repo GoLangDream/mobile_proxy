@@ -1,0 +1,7 @@
+services:
+  mobile_proxy:
+    image: jimxl/mobile_proxy:latest
+    build: .
+    ports:
+      - "3000:3000"
+    restart: always
