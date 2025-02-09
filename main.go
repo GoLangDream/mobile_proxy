@@ -32,7 +32,7 @@ func handleWebSocket(c *websocket.Conn) {
 	// Read client ID from the first message
 	_, msg, err := c.ReadMessage()
 	if err != nil {
-		log.Println("read client ID:", err)
+		log.Println("读取客户端ID错误:", err)
 		return
 	}
 	clientID = string(msg)
@@ -97,7 +97,7 @@ func constructMessage(c *fiber.Ctx) (string, error) {
 
 	messageBytes, err := json.Marshal(messageData)
 	if err != nil {
-		log.Println("JSON marshal error:", err)
+		log.Println("JSON 序列化错误:", err)
 		return "", c.Status(fiber.StatusInternalServerError).SendString("Failed to marshal JSON")
 	}
 
@@ -107,13 +107,13 @@ func constructMessage(c *fiber.Ctx) (string, error) {
 func relayMessage(conn *websocket.Conn, message string) ([]byte, error) {
 	err := conn.WriteMessage(websocket.TextMessage, []byte(message))
 	if err != nil {
-		log.Println("websocket write error:", err)
+		log.Println("websocket 写入错误:", err)
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to relay to WebSocket")
 	}
 
 	_, response, err := conn.ReadMessage()
 	if err != nil {
-		log.Println("websocket read error:", err)
+		log.Println("websocket 读取错误:", err)
 		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to read response from WebSocket")
 	}
 
@@ -126,13 +126,13 @@ func processResponse(c *fiber.Ctx, response []byte) error {
 	var responseData map[string]interface{}
 	err := json.Unmarshal(response, &responseData)
 	if err != nil {
-		log.Println("JSON unmarshal error:", err)
+		log.Println("JSON 反序列化错误:", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to unmarshal JSON response")
 	}
 
 	httpCode, ok := responseData["http_code"].(float64)
 	if !ok {
-		log.Println("http_code not found or not a number")
+		log.Println("http_code 未找到或不是一个数字")
 		return c.Status(fiber.StatusInternalServerError).SendString("http_code not found or invalid")
 	}
 	log.Printf("Response data: %s", responseData["body"])
