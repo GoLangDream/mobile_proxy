@@ -11,27 +11,27 @@ import (
 // Clients 存储已连接的客户端，键为客户端ID
 var Clients sync.Map
 
-func ClientRegister(c *websocket.Conn) {
-	clientID, err := registerClient(c)
+func ClientRegister(connect *websocket.Conn) {
+	clientID, err := registerClient(connect)
 	if err != nil {
 		log.Println("客户端注册失败:", err)
 		return
 	}
 
-	c.SetCloseHandler(func(code int, text string) error {
+	connect.SetCloseHandler(func(code int, text string) error {
 		log.Printf("客户端 %s 关闭连接，code: %d, text: %s", clientID, code, text)
 		clientUnregister(clientID)
 		return nil
 	})
 
-	go func() {
+	defer func() {
 		clientUnregister(clientID)
 	}()
 	select {} // 保持连接打开
 }
 
-func registerClient(c *websocket.Conn) (string, error) {
-	_, msg, err := c.ReadMessage()
+func registerClient(connect *websocket.Conn) (string, error) {
+	_, msg, err := connect.ReadMessage()
 	if err != nil {
 		return "", err
 	}
@@ -39,7 +39,9 @@ func registerClient(c *websocket.Conn) (string, error) {
 	clientID := string(msg)
 	log.Printf("新的WebSocket连接来自客户端: %s", clientID)
 
-	Clients.Store(clientID, c)
+	clientUnregister(clientID)
+	Clients.Store(clientID, connect)
+
 	return clientID, nil
 }
 
@@ -73,5 +75,4 @@ func clientUnregister(clientID string) {
 
 func cleanupClient(clientID string) {
 	Clients.Delete(clientID)
-	log.Printf("客户端断开连接: %s", clientID)
 }
