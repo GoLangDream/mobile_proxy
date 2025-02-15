@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
 )
 
 // packageHTTPRequest 构造要发送给 WebSocket 客户端的 HTTP 请求消息
@@ -39,33 +38,8 @@ func packageHTTPRequest(c *fiber.Ctx) (string, error) {
 	return string(messageBytes), nil
 }
 
-// relayToMobile 将消息转发到 WebSocket 连接并等待响应
-func relayToMobile(conn *websocket.Conn, message string) ([]byte, error) {
-	err := conn.WriteMessage(websocket.TextMessage, []byte(message))
-	if err != nil {
-		log.Println("WebSocket 写入错误:", err)
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to relay to WebSocket")
-	}
-
-	messageType, response, err := conn.ReadMessage()
-	if err != nil {
-		log.Println("WebSocket 读取错误:", err)
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to read response from WebSocket")
-	}
-
-	if messageType == websocket.TextMessage {
-		log.Printf("从 WebSocket 客户端接收到文本消息: %s", response)
-	} else if messageType == websocket.BinaryMessage {
-		log.Printf("从 WebSocket 客户端接收到二进制消息: %v", response)
-	} else {
-		log.Printf("从 WebSocket 客户端接收到未知消息类型")
-	}
-
-	return response, nil
-}
-
-// ProcessMobileResponse 处理从 WebSocket 客户端收到的响应
-func ProcessMobileResponse(c *fiber.Ctx, response []byte) error {
+// processMobileResponse 处理从 WebSocket 客户端收到的响应
+func processMobileResponse(c *fiber.Ctx, response []byte) error {
 	log.Printf("从 WebSocket 客户端接收到响应")
 
 	var responseData map[string]interface{}
@@ -81,7 +55,7 @@ func ProcessMobileResponse(c *fiber.Ctx, response []byte) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("http_code not found or invalid")
 	}
 	log.Printf("响应数据: %s", responseData["body"])
-	contentType, _ := responseData["Content-Type"].(string) // Ignore the error, just proceed without setting it if missing.
+	contentType, _ := responseData["content-type"].(string) // Ignore the error, just proceed without setting it if missing.
 	bodyString, _ := responseData["body"].(string)          // Handle missing body gracefully
 
 	if contentType != "" {
